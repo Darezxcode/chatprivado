@@ -200,77 +200,9 @@ class PrivateChat {
     }
 }
 
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const PrivateChat = require('./PrivateChat');
 
-// Creamos aplicación express
-const app = express();
-const server = http.createServer(app);
-
-// Inicializamos socket.io
-const io = new Server(server, {
-  cors: {
-    origin: "*", // Configurable para seguridad
-    methods: ["GET", "POST"]
-  }
-});
-
-// Almacén de usuarios conectados
-const connectedUsers = new Map();
-
-// Configuración de conexiones WebSocket
-io.on('connection', (socket) => {
-  console.log('🔌 Nueva conexión WebSocket');
-
-  // Registro de usuario
-  socket.on('register', (username) => {
-    // Creamos una instancia de chat privado para este usuario
-    const userChat = new PrivateChat();
     
-    // Guardamos información del usuario
-    connectedUsers.set(socket.id, {
-      username,
-      chat: userChat,
-      socketId: socket.id
-    });
-
-    console.log(`👤 Usuario registrado: ${username}`);
-    socket.emit('registration_success', {
-      userId: userChat.userInfo.id
-    });
-  });
-
-  // Envío de mensaje
-  socket.on('send_message', (data) => {
-    const senderInfo = connectedUsers.get(socket.id);
     
-    if (senderInfo) {
-      // Encriptamos el mensaje
-      const encryptedMessage = senderInfo.chat.sendMessage(data.message);
-      
-      // Emitimos el mensaje a todos (en un sistema real, se enviaría solo al destinatario)
-      io.emit('receive_message', {
-        sender: senderInfo.username,
-        message: encryptedMessage
-      });
-    }
-  });
-
-  // Desconexión
-  socket.on('disconnect', () => {
-    connectedUsers.delete(socket.id);
-    console.log('🔌 Usuario desconectado');
-  });
-});
-
-// Configuramos puerto
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Servidor WebSocket iniciado en puerto ${PORT}`);
-});
-
 // Exportamos la clase para uso en otros módulos
 module.exports = PrivateChat;
 
